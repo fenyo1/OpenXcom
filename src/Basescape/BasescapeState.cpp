@@ -66,7 +66,7 @@ BasescapeState::BasescapeState(Base *base, Globe *globe) : _base(base), _globe(g
 	// Create objects
 	_txtFacility = new Text(192, 9, 0, 0);
 	_view = new BaseView(192, 192, 0, 8);
-	_mini = new MiniBaseView(128, 16, 192, 41);
+	_mini = new MiniBaseView(_game->getSavedGame()->getBases(), (NewBaseSelectedHandler)&BasescapeState::setBase, 128, 16, 192, 41);
 	_edtBase = new TextEdit(this, 127, 17, 193, 0);
 	_txtLocation = new Text(126, 9, 194, 16);
 	_txtFunds = new Text(126, 9, 194, 24);
@@ -113,9 +113,8 @@ BasescapeState::BasescapeState(Base *base, Globe *globe) : _base(base), _globe(g
 	_view->onMouseOut((ActionHandler)&BasescapeState::viewMouseOut);
 
 	_mini->setTexture(_game->getResourcePack()->getSurfaceSet("BASEBITS.PCK"));
-	_mini->setBases(_game->getSavedGame()->getBases());
-	_mini->onMouseClick((ActionHandler)&BasescapeState::miniClick);
 	_mini->onKeyboardPress((ActionHandler)&BasescapeState::handleKeyPress);
+	_mini->setSelectedBase(_base);
 
 	_txtFacility->setColor(Palette::blockOffset(13)+10);
 
@@ -202,7 +201,29 @@ void BasescapeState::init()
 {
 	State::init();
 
-	setBase(_base);
+	if (!_game->getSavedGame()->getBases()->empty())
+	{
+		bool exists = false;
+		for (std::vector<Base*>::iterator i = _game->getSavedGame()->getBases()->begin(); i != _game->getSavedGame()->getBases()->end() && !exists; ++i)
+		{
+			if (*i == _base)
+			{
+				exists = true;
+			}
+		}
+		// If base was removed, select first one
+		if (!exists)
+		{
+			_base = _game->getSavedGame()->getBases()->front();
+			_mini->setSelectedBase(_base);
+		}
+	}
+	else
+	{
+		// Use a blank base for special case when player has no bases
+		_base = new Base(_game->getRuleset());
+	}
+
 	_view->setBase(_base);
 	_mini->draw();
 	_edtBase->setText(_base->getName());
@@ -228,36 +249,20 @@ void BasescapeState::init()
  */
 void BasescapeState::setBase(Base *base)
 {
-	if (!_game->getSavedGame()->getBases()->empty())
-	{
-		// Check if base still exists
-		bool exists = false;
-		for (size_t i = 0; i < _game->getSavedGame()->getBases()->size(); ++i)
-		{
-			if (_game->getSavedGame()->getBases()->at(i) == base)
-			{
-				_base = base;
-				_mini->setSelectedBase(i);
-				_game->getSavedGame()->setSelectedBase(i);
-				exists = true;
-				break;
-			}
-		}
-		// If base was removed, select first one
-		if (!exists)
-		{
-			_base = _game->getSavedGame()->getBases()->front();
-			_mini->setSelectedBase(0);
-			_game->getSavedGame()->setSelectedBase(0);
-		}
-	}
-	else
-	{
-		// Use a blank base for special case when player has no bases
-		_base = new Base(_game->getRuleset());
-		_mini->setSelectedBase(0);
-		_game->getSavedGame()->setSelectedBase(0);
-	}
+	_base = base;
+	_game->getSavedGame()->setSelectedBase(base);
+	init();
+}
+
+/**
+ * Changes the base currently displayed on screen. (and sets the miniBaseView also!)
+ * @param base Pointer to new base to display.
+ */
+void BasescapeState::setBaseAndMini(Base *base)
+{
+	_base = base;
+	_mini->setSelectedBase(base);
+	init();
 }
 
 /**
@@ -483,20 +488,6 @@ void BasescapeState::viewMouseOut(Action *)
  * Selects a new base to display.
  * @param action Pointer to an action.
  */
-void BasescapeState::miniClick(Action *)
-{
-	size_t base = _mini->getHoveredBase();
-	if (base < _game->getSavedGame()->getBases()->size())
-	{
-		_base = _game->getSavedGame()->getBases()->at(base);
-		init();
-	}
-}
-
-/**
- * Selects a new base to display.
- * @param action Pointer to an action.
- */
 void BasescapeState::handleKeyPress(Action *action)
 {
 	if (action->getDetails()->type == SDL_KEYDOWN)
@@ -514,8 +505,7 @@ void BasescapeState::handleKeyPress(Action *action)
 		{
 			if (key == baseKeys[i])
 			{
-				_base = _game->getSavedGame()->getBases()->at(i);
-				init();
+				setBaseAndMini(_game->getSavedGame()->getBases()->at(i));
 				break;
 			}
 		}
