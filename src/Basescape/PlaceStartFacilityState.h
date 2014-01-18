@@ -37,11 +37,11 @@ private:
 
 public:
 	/// Creates the Place Facility state.
-	PlaceStartFacilityState(Base *base, SelectStartFacilityState *select, RuleBaseFacility *rule);
+	PlaceStartFacilityState(Base *base, SelectStartFacilityState *select, RuleBaseFacility *rule, int viewCameraPosX, int viewCameraPosY);
 	/// Cleans up the Place Facility state.
 	~PlaceStartFacilityState();
 	/// Handler for clicking the base view.
-	void viewClick(Action *action);
+	void viewLeftClick(Action *action);
 };
 
 }

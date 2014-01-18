@@ -65,7 +65,7 @@ BasescapeState::BasescapeState(Base *base, Globe *globe) : _base(base), _globe(g
 {
 	// Create objects
 	_txtFacility = new Text(192, 9, 0, 0);
-	_view = new BaseView(192, 192, 0, 8);
+	_view = new BaseView(_game, this, (BaseViewClickHandler)&BasescapeState::viewLeftClick, (BaseViewClickHandler)&BasescapeState::viewRightClick, false, 192, 192, 0, 8);
 	_mini = new MiniBaseView(128, 16, 192, 41);
 	_edtBase = new TextEdit(this, 127, 17, 193, 0);
 	_txtLocation = new Text(126, 9, 194, 16);
@@ -107,8 +107,6 @@ BasescapeState::BasescapeState(Base *base, Globe *globe) : _base(base), _globe(g
 
 	// Set up objects
 	_view->setTexture(_game->getResourcePack()->getSurfaceSet("BASEBITS.PCK"));
-	_view->onMouseClick((ActionHandler)&BasescapeState::viewLeftClick, SDL_BUTTON_LEFT);
-	_view->onMouseClick((ActionHandler)&BasescapeState::viewRightClick, SDL_BUTTON_RIGHT);
 	_view->onMouseOver((ActionHandler)&BasescapeState::viewMouseOver);
 	_view->onMouseOut((ActionHandler)&BasescapeState::viewMouseOut);
 
@@ -261,6 +259,16 @@ void BasescapeState::setBase(Base *base)
 }
 
 /**
+ * Sets camera position of the view.
+ * @param x x-position of the camera.
+ * @param y y-position of the camera.
+ */
+void BasescapeState::setViewCameraPos(int x, int y)
+{
+	_view->setCameraPos(x,y);
+}
+
+/**
  * Goes to the Build New Base screen.
  * @param action Pointer to an action.
  */
@@ -304,7 +312,7 @@ void BasescapeState::btnCraftsClick(Action *)
  */
 void BasescapeState::btnFacilitiesClick(Action *)
 {
-	_game->pushState(new BuildFacilitiesState(_base, this));
+	_game->pushState(new BuildFacilitiesState(_base, this, _view->getCameraPosX(), _view->getCameraPosY()));
 }
 
 /**
@@ -367,24 +375,7 @@ void BasescapeState::btnGeoscapeClick(Action *)
  */
 void BasescapeState::viewLeftClick(Action *)
 {
-	BaseFacility *fac = _view->getSelectedFacility();
-	if (fac != 0)
-	{
-		// Is facility in use?
-		if (fac->inUse())
-		{
-			_game->pushState(new ErrorMessageState(tr("STR_FACILITY_IN_USE"), _palette, Palette::blockOffset(15)+1, "BACK13.SCR", 6));
-		}
-		// Would base become disconnected?
-		else if (!_base->getDisconnectedFacilities(fac).empty())
-		{
-			_game->pushState(new ErrorMessageState(tr("STR_CANNOT_DISMANTLE_FACILITY"), _palette, Palette::blockOffset(15)+1, "BACK13.SCR", 6));
-		}
-		else
-		{
-			_game->pushState(new DismantleFacilityState(_base, _view, fac));
-		}
-	}
+	_view->tryDismantle();
 }
 
 /**
@@ -450,24 +441,7 @@ void BasescapeState::viewRightClick(Action *)
  */
 void BasescapeState::viewMouseOver(Action *)
 {
-	BaseFacility *f = _view->getSelectedFacility();
-	std::wostringstream ss;
-	if (f != 0)
-	{
-		if (f->getRules()->getCrafts() == 0 || f->getBuildTime() > 0)
-		{
-			ss << tr(f->getRules()->getType());
-		}
-		else
-		{
-			ss << tr(f->getRules()->getType());
-			if (f->getCraft() != 0)
-			{
-				ss << L" " << tr("STR_CRAFT_").arg(f->getCraft()->getName(_game->getLanguage()));
-			}
-		}
-	}
-	_txtFacility->setText(ss.str());
+	_txtFacility->setText(_view->getSelectedFacilityName());
 }
 
 /**

@@ -484,15 +484,13 @@ void Ruleset::loadFile(const std::string &filename)
 		_statStrings.push_back(statString);
 	}
 
-  // refresh _psiRequirements for psiStrengthEval
+  // refresh _psiRequirements for psiStrengthEval, and _largestFacilitySize for infiniteBaseSizes
+	_largestFacilitySize = 0;
 	for (std::vector<std::string>::const_iterator i = _facilitiesIndex.begin(); i != _facilitiesIndex.end(); ++i)
 	{
 		RuleBaseFacility *rule = getBaseFacility(*i);
-		if (0 < rule->getPsiLaboratories())
-		{
-			_psiRequirements = rule->getRequirements();
-			break;
-		}
+		if (0 < rule->getPsiLaboratories()) _psiRequirements = rule->getRequirements();
+		if (rule->getSize() > _largestFacilitySize) _largestFacilitySize = rule->getSize();
 	}
 
 	_modIndex += 1000;
@@ -1370,6 +1368,14 @@ Soldier *Ruleset::genSoldier(SavedGame *save) const
 const std::string Ruleset::getAlienFuel() const
 {
 	return _alienFuel;
+}
+
+/**
+ * Gets the largest buildable facility size (it's a cache for infiniteBaseSizes)
+ */
+int Ruleset::getLargestFacilitySize() const
+{
+	return _largestFacilitySize;
 }
 
 }
