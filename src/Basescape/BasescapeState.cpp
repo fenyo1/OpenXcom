@@ -262,6 +262,7 @@ void BasescapeState::setBaseAndMini(Base *base)
 {
 	_base = base;
 	_mini->setSelectedBase(base);
+	_game->getSavedGame()->setSelectedBase(base);
 	init();
 }
 
