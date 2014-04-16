@@ -208,7 +208,7 @@ void OptionsAdvancedState::lstOptionsClick(Action *action)
 		int *i = setting->asInt();
 
 		int increment = (button == SDL_BUTTON_LEFT) ? 1 : -1; // left-click increases, right-click decreases
-		if (i == &Options::changeValueByMouseWheel || i == &Options::FPS)
+		if (i == &Options::changeValueByMouseWheel || i == &Options::FPS || i == &Options::dragScrollTimeTolerance)
 		{
 			increment *= 10;
 		}
@@ -229,6 +229,16 @@ void OptionsAdvancedState::lstOptionsClick(Action *action)
 		{
 			min = 0;
 			max = 120;
+		}
+		else if (i == &Options::dragScrollTimeTolerance)
+		{
+			min = 0;
+			max = 2000;
+		}
+		else if (i == &Options::dragScrollPixelTolerance)
+		{
+			min = 0;
+			max = 100;
 		}
 		if (*i < min)
 		{
